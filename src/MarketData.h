@@ -18,13 +18,31 @@ public:
   bool getNextSellPriceCalled = false;
 
   MarketData(float startBuyPrice, float startSellPrice) {
+    ChallengeFactory::registerChallenges();
     srand(time(NULL));
+    // for (int i = 0; i < numberOfChallenges; i++) {
+    //   ChallengeConfig config(0, 0.0f, i);
+    //   challenges.push_back(ChallengeFactory::createChallenge(config));
+    // }
+
     for (int i = 0; i < numberOfChallenges; i++) {
-      challenges.push_back(ChallengeFactory::createChallenge(0));
+      ChallengeConfig config(3, 0.01, i);
+      challenges.push_back(ChallengeFactory::createChallenge(config));
     }
 
-    for (int i = 0; i < numberOfChallenges; i += 10) {
-      challenges[i] = ChallengeFactory::createChallenge(2, 0.01);
+    for (int i = 10; i < numberOfChallenges; i += 2) {
+      ChallengeConfig config(4, 0.01, i);
+      challenges[i] = ChallengeFactory::createChallenge(config);
+    }
+
+    for (int i = 0; i < numberOfChallenges - 30; i += 8) {
+      ChallengeConfig config(5, 0.05, i);
+      challenges[i] = ChallengeFactory::createChallenge(config);
+    }
+
+    for (int i = 0; i < numberOfChallenges; i += 7) {
+      ChallengeConfig config(2, 0.01, i);
+      challenges[i] = ChallengeFactory::createChallenge(config);
     }
 
     buyPrices.push_back(startBuyPrice);

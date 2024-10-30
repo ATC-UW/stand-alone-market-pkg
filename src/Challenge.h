@@ -1,14 +1,30 @@
 #pragma once
 #include "utils.h"
+#include <cmath>
+#include <functional>
 #include <memory>
+#include <unordered_map>
+
+struct ChallengeConfig {
+  int challengeType;
+  float volatility;
+  int day;
+
+  ChallengeConfig(int type, float vol, int d)
+      : challengeType(type), volatility(vol), day(d) {}
+
+  ChallengeConfig() : challengeType(0), volatility(0), day(0) {}
+};
 
 class Challenge {
 public:
+  Challenge(ChallengeConfig &config) {};
   virtual float update(float val) = 0;
 };
 
 class Challenge0 : public Challenge {
 public:
+  Challenge0(ChallengeConfig &config) : Challenge(config) {}
   float update(float val) override { return val; }
 };
 
@@ -17,7 +33,8 @@ private:
   float volatility;
 
 public:
-  Challenge1(float vol) : volatility(vol) {};
+  Challenge1(ChallengeConfig &config)
+      : Challenge(config), volatility(config.volatility) {};
   float update(float val) override { return val * volatility; }
 };
 
@@ -26,7 +43,8 @@ private:
   float volatility;
 
 public:
-  Challenge2(float vol) : volatility(vol) {};
+  Challenge2(ChallengeConfig &config)
+      : Challenge(config), volatility(config.volatility) {};
   float update(float val) override {
     // generate some noise that is within 10% of val
     float noise = utils::random(-val / 50, val / 50);
@@ -41,17 +59,101 @@ public:
   }
 };
 
-class ChallengeFactory {
+class Challenge3 : public Challenge {
+private:
+  float vol;
+  float amplitude;
+  float phase;
+  int day;
+
 public:
-  static std::shared_ptr<Challenge> createChallenge(int challengeType,
-                                                    float volatility = 100) {
-    switch (challengeType) {
-    case 1:
-      return std::make_shared<Challenge1>(volatility);
-    case 2:
-      return std::make_shared<Challenge2>(volatility);
-    default:
-      return std::make_shared<Challenge0>();
-    }
+  Challenge3(ChallengeConfig &config)
+      : Challenge(config), vol(config.volatility), amplitude(1.0), phase(0.0),
+        day(config.day) {}
+
+  float update(float val) override {
+    float noise = utils::random(-val * vol, val * vol);
+    val += noise;
+    float sineValue = amplitude * std::sin(day);
+    return val + sineValue;
   }
 };
+
+class Challenge4 : public Challenge {
+private:
+  float dropRate;
+
+public:
+  Challenge4(ChallengeConfig &config)
+      : Challenge(config), dropRate(config.volatility) {}
+
+  float update(float val) override {
+    float noise = utils::random(-val * dropRate, val * dropRate);
+    val += noise;
+    return val - val * dropRate;
+  }
+};
+
+class Challenge5 : public Challenge {
+private:
+  float upRate;
+
+public:
+  Challenge5(ChallengeConfig &config)
+      : Challenge(config), upRate(config.volatility) {}
+
+  float update(float val) override {
+    float noise = utils::random(-val * upRate, val * upRate);
+    val += noise;
+    return val + val * upRate;
+  }
+};
+
+using ChallengeCreator =
+    std::function<std::shared_ptr<Challenge>(ChallengeConfig &)>;
+
+class ChallengeFactory {
+private:
+  static std::unordered_map<int, ChallengeCreator> challengeMap;
+
+public:
+  static void registerChallenge(int type, ChallengeCreator creator) {
+    challengeMap[type] = creator;
+  }
+
+  static std::shared_ptr<Challenge> createChallenge(ChallengeConfig &config) {
+    if (challengeMap.find(config.challengeType) == challengeMap.end()) {
+      return std::make_shared<Challenge0>(config);
+    }
+
+    return challengeMap[config.challengeType](config);
+  };
+
+  static void registerChallenges() {
+    registerChallenge(0, [=](ChallengeConfig &config) {
+      return std::make_shared<Challenge0>(config);
+    });
+
+    registerChallenge(1, [=](ChallengeConfig &config) {
+      return std::make_shared<Challenge1>(config);
+    });
+
+    registerChallenge(2, [=](ChallengeConfig &config) {
+      return std::make_shared<Challenge2>(config);
+    });
+
+    registerChallenge(3, [=](ChallengeConfig &config) {
+      return std::make_shared<Challenge3>(config);
+    });
+
+    registerChallenge(4, [=](ChallengeConfig &config) {
+      return std::make_shared<Challenge4>(config);
+    });
+
+    registerChallenge(5, [=](ChallengeConfig &config) {
+      return std::make_shared<Challenge5>(config);
+    });
+  }
+};
+
+std::unordered_map<int, ChallengeCreator> ChallengeFactory::challengeMap;
