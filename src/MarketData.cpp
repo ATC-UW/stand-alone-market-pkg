@@ -39,8 +39,14 @@ void MarketData::computePrices() {
   for (int i = 0; i < totalDays; i++) {
     if (dayRegimes[i]) {
       dayRegimes[i]->setDayIndex(i);
-      buyPrices.push_back(dayRegimes[i]->update(buyPrices.back(), rng));
-      sellPrices.push_back(dayRegimes[i]->update(sellPrices.back(), rng));
+      float newBuy = dayRegimes[i]->update(buyPrices.back(), rng);
+      float newSell = dayRegimes[i]->update(sellPrices.back(), rng);
+      // Enforce ask >= bid (buy price >= sell price)
+      if (newSell > newBuy) {
+        std::swap(newBuy, newSell);
+      }
+      buyPrices.push_back(newBuy);
+      sellPrices.push_back(newSell);
     } else {
       buyPrices.push_back(buyPrices.back());
       sellPrices.push_back(sellPrices.back());
