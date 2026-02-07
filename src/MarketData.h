@@ -11,20 +11,16 @@ public:
              std::vector<RegimeAssignment> regimes,
              std::optional<unsigned int> seed = std::nullopt);
 
-  float getNextBuyPrice();
-  float getNextSellPrice();
+  std::vector<float> getBuyPrices(int start = 0, int end = -1);
+  std::vector<float> getSellPrices(int start = 0, int end = -1);
+  int getTotalDays();
 
 private:
   std::vector<std::shared_ptr<Regime>> dayRegimes;
   std::vector<float> buyPrices;
   std::vector<float> sellPrices;
-  int currentDay;
   int totalDays;
-  bool getNextBuyPriceCalled;
-  bool getNextSellPriceCalled;
   std::mt19937 rng;
 
   void computePrices();
-  float getBuyPrice(int day);
-  float getSellPrice(int day);
 };

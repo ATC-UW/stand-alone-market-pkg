@@ -1,6 +1,7 @@
 #include "MarketData.h"
 #include <algorithm>
 #include <chrono>
+#include <stdexcept>
 
 MarketData::MarketData(float startBuyPrice, float startSellPrice,
                        std::vector<RegimeAssignment> regimes,
@@ -28,9 +29,6 @@ MarketData::MarketData(float startBuyPrice, float startSellPrice,
 
   buyPrices.push_back(startBuyPrice);
   sellPrices.push_back(startSellPrice);
-  currentDay = 0;
-  getNextBuyPriceCalled = false;
-  getNextSellPriceCalled = false;
 
   computePrices();
 }
@@ -54,39 +52,26 @@ void MarketData::computePrices() {
   }
 }
 
-float MarketData::getBuyPrice(int day) {
-  if (day < 0 || day >= static_cast<int>(buyPrices.size())) {
-    return -1;
+std::vector<float> MarketData::getBuyPrices(int start, int end) {
+  if (end == -1) {
+    end = static_cast<int>(buyPrices.size());
   }
-  return buyPrices[day];
+  if (start < 0 || end > static_cast<int>(buyPrices.size()) || start >= end) {
+    throw std::out_of_range("Invalid day range");
+  }
+  return std::vector<float>(buyPrices.begin() + start,
+                            buyPrices.begin() + end);
 }
 
-float MarketData::getSellPrice(int day) {
-  if (day < 0 || day >= static_cast<int>(sellPrices.size())) {
-    return -1;
+std::vector<float> MarketData::getSellPrices(int start, int end) {
+  if (end == -1) {
+    end = static_cast<int>(sellPrices.size());
   }
-  return sellPrices[day];
+  if (start < 0 || end > static_cast<int>(sellPrices.size()) || start >= end) {
+    throw std::out_of_range("Invalid day range");
+  }
+  return std::vector<float>(sellPrices.begin() + start,
+                            sellPrices.begin() + end);
 }
 
-float MarketData::getNextBuyPrice() {
-  float ret = getBuyPrice(currentDay);
-  getNextBuyPriceCalled = true;
-
-  if (getNextSellPriceCalled) {
-    currentDay++;
-    getNextBuyPriceCalled = false;
-    getNextSellPriceCalled = false;
-  }
-  return ret;
-}
-
-float MarketData::getNextSellPrice() {
-  float ret = getSellPrice(currentDay);
-  getNextSellPriceCalled = true;
-  if (getNextBuyPriceCalled) {
-    currentDay++;
-    getNextBuyPriceCalled = false;
-    getNextSellPriceCalled = false;
-  }
-  return ret;
-}
+int MarketData::getTotalDays() { return totalDays; }

@@ -9,13 +9,17 @@ A C++/Python hybrid package for simulating market buy/sell price movements with 
   - **GBM** — Geometric Brownian Motion (log-normal price model)
   - **MeanReversion** — Ornstein-Uhlenbeck mean-reverting process
   - **JumpDiffusion** — GBM with Poisson-driven jumps
+  - **Momentum** — GBM with autocorrelated returns
+  - **TrendingMeanReversion** — Mean reversion with linearly drifting mean
   - **RandomWalk** — Random directional steps
   - **SineWave** — Sine oscillation with noise
   - **Drop** — Multiplicative price drop
   - **Spike** — Multiplicative price spike
+- **Preset regimes** for common market conditions: BullQuiet, BullVolatile, BearQuiet, BearVolatile, SidewaysQuiet, Crisis, DisbeliefMomentum, FrenzyZone, ChopZone, Transition
 - Reproducible simulations via optional seed parameter
 - All regimes have sensible default parameters
 - Configurable number of simulation days (inferred from regime assignments)
+- Range query API — retrieve all prices at once or slice by day range
 
 ## Requirements
 
@@ -58,13 +62,45 @@ md = MarketData(
     seed=42,  # optional, for reproducibility
 )
 
-for day in range(120):
-    buy = md.getNextBuyPrice()
-    sell = md.getNextSellPrice()
-    print(f"Day {day}: buy={buy:.2f}, sell={sell:.2f}")
+# Get all prices at once
+buy_prices = md.getBuyPrices()        # list of floats, day 0 through last day
+sell_prices = md.getSellPrices()
+
+# Or slice by day range
+buy_slice = md.getBuyPrices(30, 60)   # days 30-59 only
+
+# Query total simulation days
+total = md.getTotalDays()             # 120
 ```
 
-**Note:** Both `getNextBuyPrice()` and `getNextSellPrice()` must be called each day to advance to the next day.
+### Preset Regimes
+
+Presets provide tuned regime configurations for common market conditions:
+
+```python
+from mm_game import MarketData, BullQuiet, Crisis, FrenzyZone
+
+regimes = [
+    (BullQuiet(), range(0, 50)),
+    (Crisis(), range(50, 80)),
+    (FrenzyZone(), range(80, 120)),
+]
+md = MarketData(100.0, 99.5, regimes, seed=42)
+
+buy_prices = md.getBuyPrices()
+```
+
+Available presets (all accept `scale` to adjust volatility):
+- `BullQuiet(scale)` — Low-volatility upward drift
+- `BullVolatile(scale)` — High-volatility upward drift
+- `BearQuiet(scale)` — Low-volatility downward drift
+- `BearVolatile(scale)` — High-volatility downward drift
+- `SidewaysQuiet(mu, scale)` — Quiet mean reversion around `mu`
+- `Crisis(scale)` — Crash dynamics with negative jumps
+- `DisbeliefMomentum(mu, scale)` — Trending mean reversion with drift
+- `FrenzyZone(scale)` — Momentum-driven rally
+- `ChopZone(mu, scale)` — Volatile mean reversion (choppy market)
+- `Transition(scale)` — Flat drift, moderate noise
 
 ### Regime Parameters
 
@@ -74,6 +110,8 @@ All regimes can be constructed with no arguments (using defaults):
 GBM()                # mu=0.0005, sigma=0.02
 MeanReversion()      # mu=100.0, theta=0.1, sigma=0.5
 JumpDiffusion()      # mu=0.0, sigma=0.02, jump_intensity=0.1, jump_size=0.05
+Momentum()           # mu=0.0, sigma=0.02, momentum=0.0
+TrendingMeanReversion()  # mu=100.0, drift=0.0, theta=0.1, sigma=0.5
 RandomWalk()         # volatility=0.01
 SineWave()           # volatility=0.01, amplitude=1.0, phase=0.0
 Drop()               # rate=0.01

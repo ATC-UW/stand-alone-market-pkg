@@ -16,7 +16,6 @@ regimes = [
     ("GBM", GBM(mu=0.0005, sigma=0.02), range(120, 150)),
 ]
 
-total_days = max(r.stop for _, _, r in regimes)
 md = MarketData(
     start_buy_price=100.0,
     start_sell_price=99.5,
@@ -24,13 +23,9 @@ md = MarketData(
     seed=423333,
 )
 
-buy_prices = []
-sell_prices = []
-for _ in range(total_days + 1):
-    buy_prices.append(md.getNextBuyPrice())
-    sell_prices.append(md.getNextSellPrice())
-
-days = list(range(total_days + 1))
+buy_prices = md.getBuyPrices()
+sell_prices = md.getSellPrices()
+days = list(range(len(buy_prices)))
 
 plt.figure(figsize=(14, 6))
 plt.plot(days, buy_prices, label="Buy Price", linewidth=1.5)

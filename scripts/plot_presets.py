@@ -37,13 +37,10 @@ axes = axes.flatten()
 for idx, (name, regime) in enumerate(presets):
     md = MarketData(100.0, 99.5, [(regime, range(0, NUM_DAYS))], seed=SEED)
 
-    buy_prices = []
-    sell_prices = []
-    for _ in range(NUM_DAYS + 1):
-        buy_prices.append(md.getNextBuyPrice())
-        sell_prices.append(md.getNextSellPrice())
+    buy_prices = md.getBuyPrices()
+    sell_prices = md.getSellPrices()
+    days = list(range(len(buy_prices)))
 
-    days = list(range(NUM_DAYS + 1))
     ax = axes[idx]
     ax.plot(days, buy_prices, label="Buy", linewidth=1.2)
     ax.plot(days, sell_prices, label="Sell", linewidth=1.2)

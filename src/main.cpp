@@ -63,8 +63,11 @@ PYBIND11_MODULE(_core, m) {
                     std::optional<unsigned int>>(),
            py::arg("start_buy_price"), py::arg("start_sell_price"),
            py::arg("regimes"), py::arg("seed") = py::none())
-      .def("getNextBuyPrice", &MarketData::getNextBuyPrice)
-      .def("getNextSellPrice", &MarketData::getNextSellPrice);
+      .def("getBuyPrices", &MarketData::getBuyPrices, py::arg("start") = 0,
+           py::arg("end") = -1)
+      .def("getSellPrices", &MarketData::getSellPrices, py::arg("start") = 0,
+           py::arg("end") = -1)
+      .def("getTotalDays", &MarketData::getTotalDays);
 
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
