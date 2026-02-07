@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from mm_game import (
     MarketData,
+    DeadCatBounce,
     Drop,
+    Earnings,
     GBM,
+    InverseDeadCatBounce,
     JumpDiffusion,
     MeanReversion,
     RandomWalk,
@@ -175,4 +178,79 @@ class TestDefaultParams:
 
     def test_sine_wave_defaults(self):
         md = MarketData(100.0, 99.0, [(SineWave(), range(0, 10))], seed=SEED)
+        assert all(p > 0 for p in md.getBuyPrices())
+
+
+class TestEarnings:
+    def test_price_reaches_target_range(self):
+        target_min, target_max = 80.0, 120.0
+        regimes = [(Earnings(target_min=target_min, target_max=target_max, num_days=30), range(0, 30))]
+        md = MarketData(100.0, 99.0, regimes, seed=SEED)
+        buys = md.getBuyPrices()
+        # Final price should be near the target range (within noise tolerance)
+        assert target_min * 0.9 <= buys[-1] <= target_max * 1.1
+
+    def test_reproducibility(self):
+        regimes1 = [(Earnings(target_min=80.0, target_max=120.0, num_days=20), range(0, 20))]
+        regimes2 = [(Earnings(target_min=80.0, target_max=120.0, num_days=20), range(0, 20))]
+        md1 = MarketData(100.0, 99.0, regimes1, seed=SEED)
+        md2 = MarketData(100.0, 99.0, regimes2, seed=SEED)
+        assert md1.getBuyPrices() == md2.getBuyPrices()
+
+    def test_defaults(self):
+        md = MarketData(100.0, 99.0, [(Earnings(), range(0, 10))], seed=SEED)
+        assert all(p > 0 for p in md.getBuyPrices())
+
+
+class TestDeadCatBounce:
+    def test_three_phase_pattern(self):
+        num_days = 60
+        regimes = [(DeadCatBounce(drop_rate=0.3, recovery_rate=0.5, decline_rate=0.2, num_days=num_days), range(0, num_days))]
+        md = MarketData(100.0, 99.0, regimes, seed=SEED)
+        buys = md.getBuyPrices()
+        phase1_end = num_days * 30 // 100  # day 18
+        phase2_end = num_days * 60 // 100  # day 36
+        # Phase 1: price should drop
+        assert buys[phase1_end] < buys[0]
+        # Phase 2: price should recover (higher than phase 1 bottom)
+        assert buys[phase2_end] > buys[phase1_end]
+        # Phase 3: price should decline again (lower than phase 2 peak)
+        assert buys[-1] < buys[phase2_end]
+
+    def test_final_price_lower_than_start(self):
+        num_days = 60
+        regimes = [(DeadCatBounce(drop_rate=0.3, recovery_rate=0.5, decline_rate=0.2, num_days=num_days), range(0, num_days))]
+        md = MarketData(100.0, 99.0, regimes, seed=SEED)
+        buys = md.getBuyPrices()
+        assert buys[-1] < buys[0]
+
+    def test_defaults(self):
+        md = MarketData(100.0, 99.0, [(DeadCatBounce(), range(0, 30))], seed=SEED)
+        assert all(p > 0 for p in md.getBuyPrices())
+
+
+class TestInverseDeadCatBounce:
+    def test_three_phase_pattern(self):
+        num_days = 60
+        regimes = [(InverseDeadCatBounce(rise_rate=0.3, pullback_rate=0.5, continue_rate=0.2, num_days=num_days), range(0, num_days))]
+        md = MarketData(100.0, 99.0, regimes, seed=SEED)
+        buys = md.getBuyPrices()
+        phase1_end = num_days * 30 // 100
+        phase2_end = num_days * 60 // 100
+        # Phase 1: price should rise
+        assert buys[phase1_end] > buys[0]
+        # Phase 2: price should pull back
+        assert buys[phase2_end] < buys[phase1_end]
+        # Phase 3: price should continue rising
+        assert buys[-1] > buys[phase2_end]
+
+    def test_final_price_higher_than_start(self):
+        num_days = 60
+        regimes = [(InverseDeadCatBounce(rise_rate=0.3, pullback_rate=0.5, continue_rate=0.2, num_days=num_days), range(0, num_days))]
+        md = MarketData(100.0, 99.0, regimes, seed=SEED)
+        buys = md.getBuyPrices()
+        assert buys[-1] > buys[0]
+
+    def test_defaults(self):
+        md = MarketData(100.0, 99.0, [(InverseDeadCatBounce(), range(0, 30))], seed=SEED)
         assert all(p > 0 for p in md.getBuyPrices())

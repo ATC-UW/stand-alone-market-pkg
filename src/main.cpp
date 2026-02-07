@@ -54,6 +54,27 @@ PYBIND11_MODULE(_core, m) {
            py::arg("drift") = 0.0f, py::arg("theta") = 0.1f,
            py::arg("sigma") = 0.5f);
 
+  py::class_<EarningsRegime, Regime, std::shared_ptr<EarningsRegime>>(
+      m, "Earnings")
+      .def(py::init<float, float, int, float>(),
+           py::arg("target_min") = 90.0f, py::arg("target_max") = 110.0f,
+           py::arg("num_days") = 5, py::arg("noise") = 0.02f);
+
+  py::class_<DeadCatBounceRegime, Regime,
+             std::shared_ptr<DeadCatBounceRegime>>(m, "DeadCatBounce")
+      .def(py::init<float, float, float, int, float>(),
+           py::arg("drop_rate") = 0.3f, py::arg("recovery_rate") = 0.5f,
+           py::arg("decline_rate") = 0.2f, py::arg("num_days") = 30,
+           py::arg("noise") = 0.02f);
+
+  py::class_<InverseDeadCatBounceRegime, Regime,
+             std::shared_ptr<InverseDeadCatBounceRegime>>(
+      m, "InverseDeadCatBounce")
+      .def(py::init<float, float, float, int, float>(),
+           py::arg("rise_rate") = 0.3f, py::arg("pullback_rate") = 0.5f,
+           py::arg("continue_rate") = 0.2f, py::arg("num_days") = 30,
+           py::arg("noise") = 0.02f);
+
   py::class_<RegimeAssignment>(m, "RegimeAssignment")
       .def(py::init<std::shared_ptr<Regime>, int, int>(), py::arg("regime"),
            py::arg("start_day"), py::arg("end_day"));

@@ -109,6 +109,66 @@ public:
   float update(float val, std::mt19937 &rng) override;
 };
 
+class EarningsRegime : public Regime {
+private:
+  float targetMin;
+  float targetMax;
+  int numDays;
+  float noise;
+  int startDay;
+  int relativeDay;
+  float targetPrice;
+  float basePrice;
+  float noiseAccum;
+  int mode; // 0=instant, 1=linear, 2=ease-in-out
+  bool initialized;
+
+public:
+  EarningsRegime(float targetMin, float targetMax, int numDays, float noise);
+  void setDayIndex(int day) override;
+  float update(float val, std::mt19937 &rng) override;
+};
+
+class DeadCatBounceRegime : public Regime {
+private:
+  float dropRate;
+  float recoveryRate;
+  float declineRate;
+  int numDays;
+  float noise;
+  int startDay;
+  int relativeDay;
+  float basePrice;
+  float noiseAccum;
+  bool initialized;
+
+public:
+  DeadCatBounceRegime(float dropRate, float recoveryRate, float declineRate,
+                      int numDays, float noise);
+  void setDayIndex(int day) override;
+  float update(float val, std::mt19937 &rng) override;
+};
+
+class InverseDeadCatBounceRegime : public Regime {
+private:
+  float riseRate;
+  float pullbackRate;
+  float continueRate;
+  int numDays;
+  float noise;
+  int startDay;
+  int relativeDay;
+  float basePrice;
+  float noiseAccum;
+  bool initialized;
+
+public:
+  InverseDeadCatBounceRegime(float riseRate, float pullbackRate,
+                             float continueRate, int numDays, float noise);
+  void setDayIndex(int day) override;
+  float update(float val, std::mt19937 &rng) override;
+};
+
 struct RegimeAssignment {
   std::shared_ptr<Regime> regime;
   int startDay;

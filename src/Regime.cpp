@@ -136,3 +136,177 @@ float TrendingMeanReversionRegime::update(float val, std::mt19937 &rng) {
   step++;
   return newVal;
 }
+
+// --- EarningsRegime ---
+
+EarningsRegime::EarningsRegime(float targetMin, float targetMax, int numDays,
+                               float noise)
+    : targetMin(targetMin), targetMax(targetMax), numDays(numDays), noise(noise),
+      startDay(-1), relativeDay(0), targetPrice(0.0f), basePrice(0.0f),
+      noiseAccum(0.0f), mode(-1), initialized(false) {}
+
+void EarningsRegime::setDayIndex(int day) {
+  if (startDay < 0)
+    startDay = day;
+  relativeDay = day - startDay;
+}
+
+float EarningsRegime::update(float val, std::mt19937 &rng) {
+  if (!initialized) {
+    basePrice = val;
+    std::uniform_int_distribution<int> modeDist(0, 2);
+    mode = modeDist(rng);
+    std::uniform_real_distribution<float> targetDist(targetMin, targetMax);
+    targetPrice = targetDist(rng);
+    initialized = true;
+  }
+
+  float progress =
+      (numDays <= 1) ? 1.0f
+                     : static_cast<float>(relativeDay) / static_cast<float>(numDays - 1);
+  progress = std::min(progress, 1.0f);
+
+  float price;
+  if (mode == 0) {
+    // Instant jump: snap to target on first day
+    price = (relativeDay == 0)
+                ? basePrice
+                : targetPrice;
+  } else if (mode == 1) {
+    // Linear ramp
+    price = basePrice + (targetPrice - basePrice) * progress;
+  } else {
+    // Ease-in-out (smoothstep)
+    float t = progress * progress * (3.0f - 2.0f * progress);
+    price = basePrice + (targetPrice - basePrice) * t;
+  }
+
+  // Mean-reverting GBM-style noise
+  std::normal_distribution<float> norm(0.0f, 1.0f);
+  float z = norm(rng);
+  noiseAccum = noiseAccum * 0.95f + noise * z;
+  return price * (1.0f + noiseAccum);
+}
+
+// --- DeadCatBounceRegime ---
+
+DeadCatBounceRegime::DeadCatBounceRegime(float dropRate, float recoveryRate,
+                                         float declineRate, int numDays,
+                                         float noise)
+    : dropRate(dropRate), recoveryRate(recoveryRate), declineRate(declineRate),
+      numDays(numDays), noise(noise), startDay(-1), relativeDay(0),
+      basePrice(0.0f), noiseAccum(0.0f), initialized(false) {}
+
+void DeadCatBounceRegime::setDayIndex(int day) {
+  if (startDay < 0)
+    startDay = day;
+  relativeDay = day - startDay;
+}
+
+float DeadCatBounceRegime::update(float val, std::mt19937 &rng) {
+  if (!initialized) {
+    basePrice = val;
+    initialized = true;
+  }
+
+  int phase1End = numDays * 30 / 100;
+  int phase2End = numDays * 60 / 100;
+  if (phase1End < 1) phase1End = 1;
+  if (phase2End <= phase1End) phase2End = phase1End + 1;
+
+  float dropBottom = basePrice * (1.0f - dropRate);
+  float bounceTop = dropBottom + (basePrice - dropBottom) * recoveryRate;
+  float finalPrice = bounceTop * (1.0f - declineRate);
+
+  float price;
+  if (relativeDay < phase1End) {
+    // Phase 1: Drop
+    float t = static_cast<float>(relativeDay) / static_cast<float>(phase1End);
+    t = t * t * (3.0f - 2.0f * t); // smoothstep
+    price = basePrice + (dropBottom - basePrice) * t;
+  } else if (relativeDay < phase2End) {
+    // Phase 2: Recovery
+    float t = static_cast<float>(relativeDay - phase1End) /
+              static_cast<float>(phase2End - phase1End);
+    t = t * t * (3.0f - 2.0f * t); // smoothstep
+    price = dropBottom + (bounceTop - dropBottom) * t;
+  } else {
+    // Phase 3: Decline
+    int phase3Len = numDays - phase2End;
+    float t = (phase3Len <= 0)
+                  ? 1.0f
+                  : static_cast<float>(relativeDay - phase2End) /
+                        static_cast<float>(phase3Len);
+    t = std::min(t, 1.0f);
+    t = t * t * (3.0f - 2.0f * t); // smoothstep
+    price = bounceTop + (finalPrice - bounceTop) * t;
+  }
+
+  // Mean-reverting GBM-style noise
+  std::normal_distribution<float> norm(0.0f, 1.0f);
+  float z = norm(rng);
+  noiseAccum = noiseAccum * 0.95f + noise * z;
+  return price * (1.0f + noiseAccum);
+}
+
+// --- InverseDeadCatBounceRegime ---
+
+InverseDeadCatBounceRegime::InverseDeadCatBounceRegime(
+    float riseRate, float pullbackRate, float continueRate, int numDays,
+    float noise)
+    : riseRate(riseRate), pullbackRate(pullbackRate),
+      continueRate(continueRate), numDays(numDays), noise(noise),
+      startDay(-1), relativeDay(0), basePrice(0.0f), noiseAccum(0.0f),
+      initialized(false) {}
+
+void InverseDeadCatBounceRegime::setDayIndex(int day) {
+  if (startDay < 0)
+    startDay = day;
+  relativeDay = day - startDay;
+}
+
+float InverseDeadCatBounceRegime::update(float val, std::mt19937 &rng) {
+  if (!initialized) {
+    basePrice = val;
+    initialized = true;
+  }
+
+  int phase1End = numDays * 30 / 100;
+  int phase2End = numDays * 60 / 100;
+  if (phase1End < 1) phase1End = 1;
+  if (phase2End <= phase1End) phase2End = phase1End + 1;
+
+  float riseTop = basePrice * (1.0f + riseRate);
+  float pullbackBottom = riseTop - (riseTop - basePrice) * pullbackRate;
+  float finalPrice = pullbackBottom * (1.0f + continueRate);
+
+  float price;
+  if (relativeDay < phase1End) {
+    // Phase 1: Rise
+    float t = static_cast<float>(relativeDay) / static_cast<float>(phase1End);
+    t = t * t * (3.0f - 2.0f * t); // smoothstep
+    price = basePrice + (riseTop - basePrice) * t;
+  } else if (relativeDay < phase2End) {
+    // Phase 2: Pullback
+    float t = static_cast<float>(relativeDay - phase1End) /
+              static_cast<float>(phase2End - phase1End);
+    t = t * t * (3.0f - 2.0f * t); // smoothstep
+    price = riseTop + (pullbackBottom - riseTop) * t;
+  } else {
+    // Phase 3: Continue rise
+    int phase3Len = numDays - phase2End;
+    float t = (phase3Len <= 0)
+                  ? 1.0f
+                  : static_cast<float>(relativeDay - phase2End) /
+                        static_cast<float>(phase3Len);
+    t = std::min(t, 1.0f);
+    t = t * t * (3.0f - 2.0f * t); // smoothstep
+    price = pullbackBottom + (finalPrice - pullbackBottom) * t;
+  }
+
+  // Mean-reverting GBM-style noise
+  std::normal_distribution<float> norm(0.0f, 1.0f);
+  float z = norm(rng);
+  noiseAccum = noiseAccum * 0.95f + noise * z;
+  return price * (1.0f + noiseAccum);
+}

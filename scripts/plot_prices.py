@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
-from mm_game import Drop, GBM, JumpDiffusion, MarketData, MeanReversion, Spike
+from mm_game import (
+    DeadCatBounce,
+    Drop,
+    Earnings,
+    GBM,
+    InverseDeadCatBounce,
+    JumpDiffusion,
+    MarketData,
+    MeanReversion,
+    Spike,
+)
 
 regimes = [
     ("MeanReversion", MeanReversion(mu=100.0, theta=0.9, sigma=0.3), range(0, 30)),
@@ -13,7 +23,10 @@ regimes = [
         range(80, 100),
     ),
     ("Spike", Spike(rate=0.03), range(100, 120)),
-    ("GBM", GBM(mu=0.0005, sigma=0.02), range(120, 150)),
+    ("Earnings", Earnings(target_min=80.0, target_max=130.0, num_days=20), range(120, 140)),
+    ("DeadCatBounce", DeadCatBounce(drop_rate=0.3, recovery_rate=0.5, decline_rate=0.2, num_days=40), range(140, 180)),
+    ("InvDeadCat", InverseDeadCatBounce(rise_rate=0.3, pullback_rate=0.5, continue_rate=0.2, num_days=40), range(180, 220)),
+    ("GBM", GBM(mu=0.0005, sigma=0.02), range(220, 250)),
 ]
 
 md = MarketData(
