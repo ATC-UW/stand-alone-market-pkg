@@ -84,6 +84,31 @@ public:
   float update(float val, std::mt19937 &rng) override;
 };
 
+class MomentumRegime : public Regime {
+private:
+  float mu;
+  float sigma;
+  float momentum;
+  float prevReturn;
+
+public:
+  MomentumRegime(float mu, float sigma, float momentum);
+  float update(float val, std::mt19937 &rng) override;
+};
+
+class TrendingMeanReversionRegime : public Regime {
+private:
+  float mu;
+  float drift;
+  float theta;
+  float sigma;
+  int step;
+
+public:
+  TrendingMeanReversionRegime(float mu, float drift, float theta, float sigma);
+  float update(float val, std::mt19937 &rng) override;
+};
+
 struct RegimeAssignment {
   std::shared_ptr<Regime> regime;
   int startDay;

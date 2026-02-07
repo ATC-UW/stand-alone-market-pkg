@@ -42,6 +42,18 @@ PYBIND11_MODULE(_core, m) {
            py::arg("sigma") = 0.02f, py::arg("jump_intensity") = 0.1f,
            py::arg("jump_size") = 0.05f);
 
+  py::class_<MomentumRegime, Regime, std::shared_ptr<MomentumRegime>>(
+      m, "Momentum")
+      .def(py::init<float, float, float>(), py::arg("mu") = 0.0f,
+           py::arg("sigma") = 0.02f, py::arg("momentum") = 0.0f);
+
+  py::class_<TrendingMeanReversionRegime, Regime,
+             std::shared_ptr<TrendingMeanReversionRegime>>(
+      m, "TrendingMeanReversion")
+      .def(py::init<float, float, float, float>(), py::arg("mu") = 100.0f,
+           py::arg("drift") = 0.0f, py::arg("theta") = 0.1f,
+           py::arg("sigma") = 0.5f);
+
   py::class_<RegimeAssignment>(m, "RegimeAssignment")
       .def(py::init<std::shared_ptr<Regime>, int, int>(), py::arg("regime"),
            py::arg("start_day"), py::arg("end_day"));

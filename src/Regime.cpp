@@ -104,3 +104,35 @@ float JumpDiffusionRegime::update(float val, std::mt19937 &rng) {
 
   return gbmPrice;
 }
+
+// --- MomentumRegime ---
+
+MomentumRegime::MomentumRegime(float mu, float sigma, float momentum)
+    : mu(mu), sigma(sigma), momentum(momentum), prevReturn(0.0f) {}
+
+float MomentumRegime::update(float val, std::mt19937 &rng) {
+  std::normal_distribution<float> norm(0.0f, 1.0f);
+  float z = norm(rng);
+  float dt = 1.0f;
+  float driftEff = mu + momentum * prevReturn;
+  float newVal = val * std::exp((driftEff - 0.5f * sigma * sigma) * dt +
+                                 sigma * std::sqrt(dt) * z);
+  prevReturn = (newVal - val) / val;
+  return newVal;
+}
+
+// --- TrendingMeanReversionRegime ---
+
+TrendingMeanReversionRegime::TrendingMeanReversionRegime(float mu, float drift,
+                                                         float theta, float sigma)
+    : mu(mu), drift(drift), theta(theta), sigma(sigma), step(0) {}
+
+float TrendingMeanReversionRegime::update(float val, std::mt19937 &rng) {
+  std::normal_distribution<float> norm(0.0f, 1.0f);
+  float z = norm(rng);
+  float dt = 1.0f;
+  float trendingMu = mu + drift * static_cast<float>(step);
+  float newVal = val + theta * (trendingMu - val) * dt + sigma * z;
+  step++;
+  return newVal;
+}
