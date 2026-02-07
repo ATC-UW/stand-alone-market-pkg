@@ -16,9 +16,10 @@ find_package(pybind11 CONFIG REQUIRED)
 
 # Add a library using FindPython's tooling (pybind11 also provides a helper like
 # this)
-python_add_library(_core MODULE src/main.cpp src/Challenge.cpp src/MarketData.cpp
+python_add_library(_core MODULE src/main.cpp src/Regime.cpp src/MarketData.cpp
                    WITH_SOABI)
 target_link_libraries(_core PRIVATE pybind11::headers)
+target_compile_features(_core PRIVATE cxx_std_17)
 
 # This is passing in the version as a define just as an example
 target_compile_definitions(_core PRIVATE VERSION_INFO=${PROJECT_VERSION})

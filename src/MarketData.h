@@ -1,25 +1,30 @@
 #pragma once
-#include "Challenge.h"
+#include "Regime.h"
 #include <memory>
+#include <optional>
+#include <random>
 #include <vector>
-
-const int numberOfChallenges = 60;
 
 class MarketData {
 public:
-  std::vector<std::shared_ptr<Challenge>> challenges;
+  MarketData(float startBuyPrice, float startSellPrice,
+             std::vector<RegimeAssignment> regimes,
+             std::optional<unsigned int> seed = std::nullopt);
+
+  float getNextBuyPrice();
+  float getNextSellPrice();
+
+private:
+  std::vector<std::shared_ptr<Regime>> dayRegimes;
   std::vector<float> buyPrices;
   std::vector<float> sellPrices;
   int currentDay;
-  bool getNextBuyPriceCalled = false;
-  bool getNextSellPriceCalled = false;
+  int totalDays;
+  bool getNextBuyPriceCalled;
+  bool getNextSellPriceCalled;
+  std::mt19937 rng;
 
-  MarketData(float startBuyPrice, float startSellPrice);
-
-  void init();
-  void updatePriceValue();
+  void computePrices();
   float getBuyPrice(int day);
   float getSellPrice(int day);
-  float getNextBuyPrice();
-  float getNextSellPrice();
 };

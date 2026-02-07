@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`mm_game` is a C++/Python hybrid package that exposes a market price simulation engine via pybind11. It simulates 60 days of buy/sell price movements using a factory/strategy pattern of challenge-based price modifiers. Distributed as a Python wheel on PyPI.
+`mm_game` is a C++/Python hybrid package that exposes a market price simulation engine via pybind11. It simulates buy/sell price movements across a configurable number of days using regime-based price modifiers with support for reproducible simulations via seeding. Distributed as a Python wheel on PyPI.
 
 ## Build & Development Commands
 
@@ -44,19 +44,28 @@ scikit-build-core + CMake (3.15–3.27) + pybind11. The CMake build compiles `sr
 
 ### C++ Core (`src/`)
 
-- **`main.cpp`** — pybind11 module definition. Exposes `MarketData` class with `(float, float)` constructor and `getNextBuyPrice()` / `getNextSellPrice()` methods.
-- **`MarketData.h`** — Core simulation engine. Creates a pipeline of 60 `Challenge` objects that sequentially modify prices per day. Challenge assignment: base is Challenge3 (sine wave + noise), overridden by Challenge4 (drop) on even days 10+, Challenge5 (spike) on specific days, Challenge2 (random noise) every 7th day.
-- **`Challenge.h`** — Abstract `Challenge` base class with `update(float)` pure virtual. Subclasses: Challenge0 (identity), Challenge1 (volatility), Challenge2 (random noise), Challenge3 (sine + noise), Challenge4 (drop), Challenge5 (spike). `ChallengeFactory` uses registry pattern (`unordered_map<int, ChallengeCreator>`) for construction by type ID.
-- **`utils.h`** — `utils::random(float a, float b)` for uniform random floats.
+- **`main.cpp`** — pybind11 module definition. Exposes all regime classes (RandomWalkRegime, SineWaveRegime, DropRegime, SpikeRegime, GBMRegime, MeanReversionRegime, JumpDiffusionRegime), RegimeAssignment struct, and _MarketData class. All regimes have default parameter values.
+- **`MarketData.h/cpp`** — Core simulation engine. Constructor takes `(float startBuy, float startSell, vector<RegimeAssignment> regimes, optional<unsigned int> seed)`. Builds a per-day regime vector from assignments where later entries overwrite earlier ones. Precomputes prices using `mt19937` RNG seeded with provided seed or a random value.
+- **`Regime.h`** — Abstract `Regime` base class with `update(float, mt19937&)` virtual method. Subclasses implement stochastic price movement models:
+  - **RandomWalkRegime** — Simple random walk with configurable step size.
+  - **SineWaveRegime** — Deterministic sine wave pattern with configurable amplitude and frequency.
+  - **DropRegime** — Applies a sharp price drop with configurable magnitude.
+  - **SpikeRegime** — Applies a sharp price spike with configurable magnitude.
+  - **GBMRegime** — Geometric Brownian Motion with configurable drift and volatility.
+  - **MeanReversionRegime** — Mean-reverting process with configurable mean, speed, and volatility.
+  - **JumpDiffusionRegime** — Jump-diffusion process combining continuous drift/volatility with random jumps.
+- **`Regime.cpp`** — All regime implementations.
+- **`RegimeAssignment`** — Struct mapping a Regime instance to a day range `[start, end)`.
+
 
 ### Python Surface (`src/mm_game/`)
 
-- **`__init__.py`** — Re-exports `MarketData`, `__version__`, `__doc__` from compiled `_core` extension.
-- Usage: `from mm_game import MarketData; md = MarketData(100.0, 99.0); md.getNextBuyPrice()`
+- **`__init__.py`** — Re-exports all regime classes, RegimeAssignment, MarketData, `__version__`, and `__doc__` from compiled `_core` extension. Provides `MarketData()` wrapper that converts `(regime, range)` tuples to RegimeAssignment objects for convenience.
+- Usage: `from mm_game import MarketData, GBM; md = MarketData(100.0, 99.0, [(GBM(), range(0, 60))], seed=42); md.getNextBuyPrice()`
 
 ### Critical Behavior
 
-`getNextBuyPrice()` and `getNextSellPrice()` must **both** be called each day to advance the internal day counter. Calling only one will not advance to the next day.
+`getNextBuyPrice()` and `getNextSellPrice()` must **both** be called each day to advance the internal day counter. Calling only one will not advance to the next day. The `seed` parameter enables reproducible simulations; if not provided, the engine uses a random seed.
 
 ## Code Style
 

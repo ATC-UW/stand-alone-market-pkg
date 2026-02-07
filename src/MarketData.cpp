@@ -1,46 +1,50 @@
 #include "MarketData.h"
-#include <cstdlib>
-#include <ctime>
+#include <algorithm>
+#include <chrono>
 
-MarketData::MarketData(float startBuyPrice, float startSellPrice) {
-  ChallengeFactory::registerChallenges();
-  srand(time(NULL));
-
-  for (int i = 0; i < numberOfChallenges; i++) {
-    ChallengeConfig config(3, 0.01, i);
-    challenges.push_back(ChallengeFactory::createChallenge(config));
+MarketData::MarketData(float startBuyPrice, float startSellPrice,
+                       std::vector<RegimeAssignment> regimes,
+                       std::optional<unsigned int> seed) {
+  if (seed.has_value()) {
+    rng.seed(seed.value());
+  } else {
+    rng.seed(static_cast<unsigned int>(
+        std::chrono::steady_clock::now().time_since_epoch().count()));
   }
 
-  for (int i = 10; i < numberOfChallenges; i += 2) {
-    ChallengeConfig config(4, 0.01, i);
-    challenges[i] = ChallengeFactory::createChallenge(config);
+  totalDays = 0;
+  for (const auto &assignment : regimes) {
+    if (assignment.endDay > totalDays) {
+      totalDays = assignment.endDay;
+    }
   }
 
-  for (int i = 0; i < numberOfChallenges - 30; i += 8) {
-    ChallengeConfig config(5, 0.05, i);
-    challenges[i] = ChallengeFactory::createChallenge(config);
-  }
-
-  for (int i = 0; i < numberOfChallenges; i += 7) {
-    ChallengeConfig config(2, 0.01, i);
-    challenges[i] = ChallengeFactory::createChallenge(config);
+  dayRegimes.resize(totalDays, nullptr);
+  for (const auto &assignment : regimes) {
+    for (int d = assignment.startDay; d < assignment.endDay; d++) {
+      dayRegimes[d] = assignment.regime;
+    }
   }
 
   buyPrices.push_back(startBuyPrice);
   sellPrices.push_back(startSellPrice);
   currentDay = 0;
-  this->init();
+  getNextBuyPriceCalled = false;
+  getNextSellPriceCalled = false;
+
+  computePrices();
 }
 
-void MarketData::init() {
-  currentDay = 0;
-  updatePriceValue();
-}
-
-void MarketData::updatePriceValue() {
-  for (int i = 0; i < numberOfChallenges; i++) {
-    buyPrices.push_back(challenges[i]->update(buyPrices.back()));
-    sellPrices.push_back(challenges[i]->update(sellPrices.back()));
+void MarketData::computePrices() {
+  for (int i = 0; i < totalDays; i++) {
+    if (dayRegimes[i]) {
+      dayRegimes[i]->setDayIndex(i);
+      buyPrices.push_back(dayRegimes[i]->update(buyPrices.back(), rng));
+      sellPrices.push_back(dayRegimes[i]->update(sellPrices.back(), rng));
+    } else {
+      buyPrices.push_back(buyPrices.back());
+      sellPrices.push_back(sellPrices.back());
+    }
   }
 }
 
