@@ -88,6 +88,8 @@ PYBIND11_MODULE(_core, m) {
            py::arg("end") = -1)
       .def("getSellPrices", &MarketData::getSellPrices, py::arg("start") = 0,
            py::arg("end") = -1)
+      .def("getMidPrices", &MarketData::getMidPrices, py::arg("start") = 0,
+           py::arg("end") = -1)
       .def("getTotalDays", &MarketData::getTotalDays)
       // SMA
       .def("getBuySMA", &MarketData::getBuySMA, py::arg("period") = 20,
@@ -120,6 +122,23 @@ PYBIND11_MODULE(_core, m) {
            py::arg("start") = 0, py::arg("end") = -1)
       // ATR
       .def("getATR", &MarketData::getATR, py::arg("period") = 14,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // Mid SMA
+      .def("getMidSMA", &MarketData::getMidSMA, py::arg("period") = 20,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // Mid EMA
+      .def("getMidEMA", &MarketData::getMidEMA, py::arg("period") = 20,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // Mid RSI
+      .def("getMidRSI", &MarketData::getMidRSI, py::arg("period") = 14,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // Mid MACD
+      .def("getMidMACD", &MarketData::getMidMACD, py::arg("fast") = 12,
+           py::arg("slow") = 26, py::arg("signal") = 9,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // Mid Bollinger Bands
+      .def("getMidBollingerBands", &MarketData::getMidBollingerBands,
+           py::arg("period") = 20, py::arg("std_dev") = 2.0f,
            py::arg("start") = 0, py::arg("end") = -1);
 
 #ifdef VERSION_INFO

@@ -18,6 +18,7 @@ public:
 
   std::vector<float> getBuyPrices(int start = 0, int end = -1);
   std::vector<float> getSellPrices(int start = 0, int end = -1);
+  std::vector<float> getMidPrices(int start = 0, int end = -1);
   int getTotalDays();
 
   // Technical indicators - Buy
@@ -42,6 +43,17 @@ public:
       getSellBollingerBands(int period = 20, float std_dev = 2.0f,
                             int start = 0, int end = -1);
 
+  // Technical indicators - Mid (midpoint of buy and sell)
+  std::vector<float> getMidSMA(int period = 20, int start = 0, int end = -1);
+  std::vector<float> getMidEMA(int period = 20, int start = 0, int end = -1);
+  std::vector<float> getMidRSI(int period = 14, int start = 0, int end = -1);
+  std::tuple<std::vector<float>, std::vector<float>, std::vector<float>>
+      getMidMACD(int fast = 12, int slow = 26, int signal = 9,
+                 int start = 0, int end = -1);
+  std::tuple<std::vector<float>, std::vector<float>, std::vector<float>>
+      getMidBollingerBands(int period = 20, float std_dev = 2.0f,
+                           int start = 0, int end = -1);
+
   // ATR uses both price series
   std::vector<float> getATR(int period = 14, int start = 0, int end = -1);
 
@@ -49,6 +61,7 @@ private:
   std::vector<std::shared_ptr<Regime>> dayRegimes;
   std::vector<float> buyPrices;
   std::vector<float> sellPrices;
+  std::vector<float> midPrices;
   int totalDays;
   std::mt19937 rng;
 

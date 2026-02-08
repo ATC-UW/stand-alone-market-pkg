@@ -34,6 +34,12 @@ MarketData::MarketData(float startBuyPrice, float startSellPrice,
   sellPrices.push_back(startSellPrice);
 
   computePrices();
+
+  // Compute mid prices
+  midPrices.resize(buyPrices.size());
+  for (size_t i = 0; i < buyPrices.size(); i++) {
+    midPrices[i] = (buyPrices[i] + sellPrices[i]) / 2.0f;
+  }
 }
 
 void MarketData::computePrices() {
@@ -78,6 +84,17 @@ std::vector<float> MarketData::getSellPrices(int start, int end) {
 }
 
 int MarketData::getTotalDays() { return totalDays; }
+
+std::vector<float> MarketData::getMidPrices(int start, int end) {
+  if (end == -1) {
+    end = static_cast<int>(midPrices.size());
+  }
+  if (start < 0 || end > static_cast<int>(midPrices.size()) || start >= end) {
+    throw std::out_of_range("Invalid day range");
+  }
+  return std::vector<float>(midPrices.begin() + start,
+                            midPrices.begin() + end);
+}
 
 std::vector<float> MarketData::sliceResult(const std::vector<float>& data,
                                            int start, int end) {
@@ -229,4 +246,69 @@ std::vector<float> MarketData::getATR(int period, int start, int end) {
     indicatorCache[key] = indicators::atr(buyPrices, sellPrices, period);
   }
   return sliceResult(indicatorCache[key], start, end);
+}
+
+// Mid SMA
+std::vector<float> MarketData::getMidSMA(int period, int start, int end) {
+  std::string key = "mid_sma_" + std::to_string(period);
+  const auto& data = getCachedOrCompute(key, midPrices,
+      [period](const std::vector<float>& p) { return indicators::sma(p, period); });
+  return sliceResult(data, start, end);
+}
+
+// Mid EMA
+std::vector<float> MarketData::getMidEMA(int period, int start, int end) {
+  std::string key = "mid_ema_" + std::to_string(period);
+  const auto& data = getCachedOrCompute(key, midPrices,
+      [period](const std::vector<float>& p) { return indicators::ema(p, period); });
+  return sliceResult(data, start, end);
+}
+
+// Mid RSI
+std::vector<float> MarketData::getMidRSI(int period, int start, int end) {
+  std::string key = "mid_rsi_" + std::to_string(period);
+  const auto& data = getCachedOrCompute(key, midPrices,
+      [period](const std::vector<float>& p) { return indicators::rsi(p, period); });
+  return sliceResult(data, start, end);
+}
+
+// Mid MACD
+std::tuple<std::vector<float>, std::vector<float>, std::vector<float>>
+MarketData::getMidMACD(int fast, int slow, int signal, int start, int end) {
+  std::string base = "mid_macd_" + std::to_string(fast) + "_" +
+                     std::to_string(slow) + "_" + std::to_string(signal);
+  std::string keyLine = base + "_line";
+  std::string keySignal = base + "_signal";
+  std::string keyHist = base + "_hist";
+
+  if (indicatorCache.find(keyLine) == indicatorCache.end()) {
+    auto result = indicators::macd(midPrices, fast, slow, signal);
+    indicatorCache[keyLine] = std::move(result.macd_line);
+    indicatorCache[keySignal] = std::move(result.signal_line);
+    indicatorCache[keyHist] = std::move(result.histogram);
+  }
+  return {sliceResult(indicatorCache[keyLine], start, end),
+          sliceResult(indicatorCache[keySignal], start, end),
+          sliceResult(indicatorCache[keyHist], start, end)};
+}
+
+// Mid Bollinger Bands
+std::tuple<std::vector<float>, std::vector<float>, std::vector<float>>
+MarketData::getMidBollingerBands(int period, float std_dev, int start, int end) {
+  char buf[32];
+  std::snprintf(buf, sizeof(buf), "%.2f", std_dev);
+  std::string base = "mid_bb_" + std::to_string(period) + "_" + buf;
+  std::string keyUpper = base + "_upper";
+  std::string keyMiddle = base + "_middle";
+  std::string keyLower = base + "_lower";
+
+  if (indicatorCache.find(keyUpper) == indicatorCache.end()) {
+    auto result = indicators::bollinger(midPrices, period, std_dev);
+    indicatorCache[keyUpper] = std::move(result.upper);
+    indicatorCache[keyMiddle] = std::move(result.middle);
+    indicatorCache[keyLower] = std::move(result.lower);
+  }
+  return {sliceResult(indicatorCache[keyUpper], start, end),
+          sliceResult(indicatorCache[keyMiddle], start, end),
+          sliceResult(indicatorCache[keyLower], start, end)};
 }
