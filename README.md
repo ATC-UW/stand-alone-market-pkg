@@ -20,6 +20,14 @@ A C++/Python hybrid package for simulating market buy/sell price movements with 
 - All regimes have sensible default parameters
 - Configurable number of simulation days (inferred from regime assignments)
 - Range query API — retrieve all prices at once or slice by day range
+- **Technical indicators** computed in C++ with lazy evaluation and caching:
+  - **SMA** — Simple Moving Average
+  - **EMA** — Exponential Moving Average
+  - **RSI** — Relative Strength Index
+  - **MACD** — Moving Average Convergence Divergence
+  - **Bollinger Bands** — Upper, middle, and lower bands
+  - **ATR** — Average True Range
+- Indicators available on buy, sell, and mid (midpoint) prices
 
 ## Requirements
 
@@ -127,6 +135,38 @@ regimes = [
     (GBM(), range(0, 100)),         # base regime
     (Drop(rate=0.05), range(50, 70)),  # overrides GBM on days 50-69
 ]
+```
+
+### Technical Indicators
+
+All indicators are lazily computed on first access and cached. Available on buy, sell, and mid prices. Days with insufficient data return `nan`.
+
+```python
+from mm_game import MarketData, GBM
+
+md = MarketData(100.0, 99.0, [(GBM(), range(0, 200))], seed=42)
+
+# Mid price = (buy + sell) / 2
+mid_prices = md.getMidPrices()
+
+# Simple Moving Average / Exponential Moving Average
+sma = md.getMidSMA(period=20)          # also getBuySMA(), getSellSMA()
+ema = md.getMidEMA(period=20)          # also getBuyEMA(), getSellEMA()
+
+# Relative Strength Index (bounded 0-100)
+rsi = md.getMidRSI(period=14)          # also getBuyRSI(), getSellRSI()
+
+# MACD — returns (macd_line, signal_line, histogram)
+macd_line, signal, hist = md.getMidMACD(fast=12, slow=26, signal=9)
+
+# Bollinger Bands — returns (upper, middle, lower)
+upper, middle, lower = md.getMidBollingerBands(period=20, std_dev=2.0)
+
+# Average True Range (uses both buy and sell prices)
+atr = md.getATR(period=14)
+
+# All indicators support range slicing
+sma_slice = md.getMidSMA(period=20, start=50, end=100)
 ```
 
 ## Development
