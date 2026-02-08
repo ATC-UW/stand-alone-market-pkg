@@ -8,6 +8,18 @@ SEED = 42
 NUM_DAYS = 100
 
 
+def _lists_equal(a, b):
+    """Compare two float lists treating NaN == NaN."""
+    if len(a) != len(b):
+        return False
+    for x, y in zip(a, b):
+        if math.isnan(x) and math.isnan(y):
+            continue
+        if x != y:
+            return False
+    return True
+
+
 class TestSMA:
     def test_known_values(self):
         """SMA of [1,2,3,4,5] with period=3 should be [NaN, NaN, 2, 3, 4]."""
@@ -111,7 +123,7 @@ class TestRSI:
     def test_reproducibility(self):
         md1 = MarketData(100.0, 99.0, [(GBM(), range(0, NUM_DAYS))], seed=SEED)
         md2 = MarketData(100.0, 99.0, [(GBM(), range(0, NUM_DAYS))], seed=SEED)
-        assert md1.getBuyRSI() == md2.getBuyRSI()
+        assert _lists_equal(md1.getBuyRSI(), md2.getBuyRSI())
 
 
 class TestMACD:
@@ -138,9 +150,9 @@ class TestMACD:
         md = MarketData(100.0, 99.0, [(GBM(), range(0, NUM_DAYS))], seed=SEED)
         full_m, full_s, full_h = md.getBuyMACD()
         sl_m, sl_s, sl_h = md.getBuyMACD(start=30, end=50)
-        assert sl_m == full_m[30:50]
-        assert sl_s == full_s[30:50]
-        assert sl_h == full_h[30:50]
+        assert _lists_equal(sl_m, full_m[30:50])
+        assert _lists_equal(sl_s, full_s[30:50])
+        assert _lists_equal(sl_h, full_h[30:50])
 
 
 class TestBollingerBands:
@@ -204,7 +216,7 @@ class TestATR:
     def test_reproducibility(self):
         md1 = MarketData(100.0, 99.0, [(GBM(), range(0, NUM_DAYS))], seed=SEED)
         md2 = MarketData(100.0, 99.0, [(GBM(), range(0, NUM_DAYS))], seed=SEED)
-        assert md1.getATR() == md2.getATR()
+        assert _lists_equal(md1.getATR(), md2.getATR())
 
 
 class TestIndicatorEdgeCases:
@@ -227,4 +239,4 @@ class TestIndicatorEdgeCases:
         md = MarketData(100.0, 99.0, [(GBM(), range(0, NUM_DAYS))], seed=SEED)
         rsi1 = md.getBuyRSI(period=14)
         rsi2 = md.getBuyRSI(period=14)
-        assert rsi1 == rsi2
+        assert _lists_equal(rsi1, rsi2)
