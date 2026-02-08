@@ -16,8 +16,9 @@ find_package(pybind11 CONFIG REQUIRED)
 
 # Add a library using FindPython's tooling (pybind11 also provides a helper like
 # this)
-python_add_library(_core MODULE src/main.cpp src/Regime.cpp src/MarketData.cpp
-                   WITH_SOABI)
+python_add_library(
+  _core MODULE src/main.cpp src/Regime.cpp src/MarketData.cpp src/Indicator.cpp
+  WITH_SOABI)
 target_link_libraries(_core PRIVATE pybind11::headers)
 target_compile_features(_core PRIVATE cxx_std_17)
 
