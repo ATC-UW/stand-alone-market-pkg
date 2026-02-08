@@ -88,7 +88,39 @@ PYBIND11_MODULE(_core, m) {
            py::arg("end") = -1)
       .def("getSellPrices", &MarketData::getSellPrices, py::arg("start") = 0,
            py::arg("end") = -1)
-      .def("getTotalDays", &MarketData::getTotalDays);
+      .def("getTotalDays", &MarketData::getTotalDays)
+      // SMA
+      .def("getBuySMA", &MarketData::getBuySMA, py::arg("period") = 20,
+           py::arg("start") = 0, py::arg("end") = -1)
+      .def("getSellSMA", &MarketData::getSellSMA, py::arg("period") = 20,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // EMA
+      .def("getBuyEMA", &MarketData::getBuyEMA, py::arg("period") = 20,
+           py::arg("start") = 0, py::arg("end") = -1)
+      .def("getSellEMA", &MarketData::getSellEMA, py::arg("period") = 20,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // RSI
+      .def("getBuyRSI", &MarketData::getBuyRSI, py::arg("period") = 14,
+           py::arg("start") = 0, py::arg("end") = -1)
+      .def("getSellRSI", &MarketData::getSellRSI, py::arg("period") = 14,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // MACD
+      .def("getBuyMACD", &MarketData::getBuyMACD, py::arg("fast") = 12,
+           py::arg("slow") = 26, py::arg("signal") = 9,
+           py::arg("start") = 0, py::arg("end") = -1)
+      .def("getSellMACD", &MarketData::getSellMACD, py::arg("fast") = 12,
+           py::arg("slow") = 26, py::arg("signal") = 9,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // Bollinger Bands
+      .def("getBuyBollingerBands", &MarketData::getBuyBollingerBands,
+           py::arg("period") = 20, py::arg("std_dev") = 2.0f,
+           py::arg("start") = 0, py::arg("end") = -1)
+      .def("getSellBollingerBands", &MarketData::getSellBollingerBands,
+           py::arg("period") = 20, py::arg("std_dev") = 2.0f,
+           py::arg("start") = 0, py::arg("end") = -1)
+      // ATR
+      .def("getATR", &MarketData::getATR, py::arg("period") = 14,
+           py::arg("start") = 0, py::arg("end") = -1);
 
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
