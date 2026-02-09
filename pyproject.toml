@@ -5,7 +5,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "mm_game"
-version = "0.0.2"
+version = "0.0.5"
 description="Embbed python package for market data (with pybind11)"
 readme = "README.md"
 authors = [
